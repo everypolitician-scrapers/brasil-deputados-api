@@ -52,15 +52,58 @@ class Member < Scraped::JSON
   field :image do
     json[:urlFoto]
   end
+
+  field :source do
+    json[:uri]
+  end
 end
 
 class FullMember < Scraped::JSON
   field :fullname do
-    json[:nomeCivil]
+    data[:nomeCivil]
+  end
+
+  field :gender do
+    data[:sexo]
   end
 
   field :twitter do
-    binding.pry if json[:id] == 74752
+    social.find { |link| link.include? 'twitter.com' }
+  end
+
+  field :facebook do
+    social.find { |link| link.include? 'facebook.com' }
+  end
+
+  field :birthdate do
+    data[:dataNascimento]
+  end
+
+  field :deathdate do
+    data[:dataFalecimento]
+  end
+
+  field :email do
+    data.dig(:ultimoStatus, :gabinet, :email)
+  end
+
+  field :status do
+    data.dig(:ultimoStatus, :situacao)
+  end
+
+  field :end_date do
+    return if status == "Exercício"
+    data.dig(:ultimoStatus, :data)
+  end
+
+  private
+
+  def data
+    json[:dados]
+  end
+
+  def social
+    data[:redeSocial]
   end
 end
 
@@ -69,13 +112,16 @@ def response(url)
 end
 
 url = 'https://dadosabertos.camara.leg.br/api/v2/deputados?idLegislatura=55&ordem=ASC&ordenarPor=nome&itens=100'
-data = []
+members = []
 
 while (url)
-  warn url
   page = MemberList.new(response: response(url))
-  data += page.members
+  members += page.members
   url = page.next
+end
+
+data = members.map do |mem|
+  mem.merge FullMember.new(response: response(mem[:source])).to_h
 end
 
 data.each { |mem| puts mem.reject { |_, v| v.to_s.empty? }.sort_by { |k, _| k }.to_h } if ENV['MORPH_DEBUG']
