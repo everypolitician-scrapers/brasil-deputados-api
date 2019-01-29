@@ -41,10 +41,6 @@ class Member < Scraped::JSON
     json[:siglaPartido]
   end
 
-  field :party_info do
-    json[:uriPartido]
-  end
-
   field :area_id do
     json[:siglaUf]
   end
