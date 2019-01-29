@@ -113,9 +113,10 @@ def response(url)
 end
 
 TERMS = 54..55
+start = 'https://dadosabertos.camara.leg.br/api/v2/deputados?idLegislatura=%d&ordem=ASC&ordenarPor=nome&itens=100'
 
 data = TERMS.flat_map do |term|
-  url = 'https://dadosabertos.camara.leg.br/api/v2/deputados?idLegislatura=%d&ordem=ASC&ordenarPor=nome&itens=100' % term
+  url = start % term
   members = []
 
   while url
