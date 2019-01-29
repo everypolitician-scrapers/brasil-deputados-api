@@ -87,6 +87,10 @@ class FullMember < Scraped::JSON
     data.dig(:ultimoStatus, :situacao)
   end
 
+  field :finalterm do
+    data.dig(:ultimoStatus, :idLegislatura)
+  end
+
   field :end_date do
     return if status == "Exercício"
     data.dig(:ultimoStatus, :data)
@@ -107,17 +111,21 @@ def response(url)
   Scraped::Request.new(url: url, headers: { 'Accept' => 'application/json' }).response
 end
 
-url = 'https://dadosabertos.camara.leg.br/api/v2/deputados?idLegislatura=55&ordem=ASC&ordenarPor=nome&itens=100'
-members = []
+TERMS = 54 .. 55
 
-while (url)
-  page = MemberList.new(response: response(url))
-  members += page.members
-  url = page.next
-end
+data = TERMS.flat_map do |term|
+  url = 'https://dadosabertos.camara.leg.br/api/v2/deputados?idLegislatura=%d&ordem=ASC&ordenarPor=nome&itens=100' % term
+  members = []
 
-data = members.map do |mem|
-  mem.merge FullMember.new(response: response(mem[:source])).to_h
+  while (url)
+    page = MemberList.new(response: response(url))
+    members += page.members
+    url = page.next
+  end
+
+  members.map do |mem|
+    mem.merge(FullMember.new(response: response(mem[:source])).to_h).merge(term: term)
+  end
 end
 
 data.each { |mem| puts mem.reject { |_, v| v.to_s.empty? }.sort_by { |k, _| k }.to_h } if ENV['MORPH_DEBUG']
